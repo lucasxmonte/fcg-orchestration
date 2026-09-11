@@ -98,3 +98,10 @@ kubectl get pods -n fcg
 | `fcg-payments-api`     | Processamento de pagamentos (event-driven)    |
 | `fcg-notifications-api`| Notificações por e-mail (simulado)            |
 | `fcg-orchestration`    | Este repositório — compose + k8s              |
+
+## Grupo 17 — Pos-Tech FIAP
+- Letícia Lopes Ribeiro Vasconcelos
+- Lucas Monte Ferreri Castilho
+- Marcelo Henrique Cornelis Rei
+- Rafael Ribeiro Arantes
+- Vinícius Calixto Real
