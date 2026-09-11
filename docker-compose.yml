@@ -2,7 +2,7 @@ version: "3.9"
 
 # ═══════════════════════════════════════════════════════════════════
 #  FCG Platform — Docker Compose unificado
-#  Serviços: PostgreSQL · RabbitMQ · UsersAPI · CatalogAPI · PaymentsAPI · NotificationsAPI
+#  Serviços: PostgreSQL · RabbitMQ · Redis · MongoDB · UsersAPI · CatalogAPI · PaymentsAPI · NotificationsAPI
 # ═══════════════════════════════════════════════════════════════════
 
 x-rabbitmq-healthcheck: &rabbitmq-healthcheck
@@ -17,6 +17,18 @@ x-postgres-healthcheck: &postgres-healthcheck
   timeout: 5s
   retries: 5
 
+x-redis-healthcheck: &redis-healthcheck
+  test: ["CMD", "redis-cli", "ping"]
+  interval: 10s
+  timeout: 5s
+  retries: 5
+
+x-mongodb-healthcheck: &mongodb-healthcheck
+  test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+  interval: 10s
+  timeout: 5s
+  retries: 5
+
 x-common-env: &common-env
   Jwt__Secret: "fcg-super-secret-key-change-in-production-min32chars!"
   Jwt__Issuer: "fcg-users-api"
@@ -25,6 +37,9 @@ x-common-env: &common-env
   RabbitMQ__VirtualHost: /
   RabbitMQ__Username: guest
   RabbitMQ__Password: guest
+  Redis__ConnectionString: "redis:6379"
+  MongoDB__ConnectionString: "mongodb://fcg_app:fcg_app_dev@mongodb:27017"
+  MongoDB__DatabaseName: "fcg_reviews"
 
 services:
   # ──────────────────────────────────────────────────────────────────
@@ -62,6 +77,35 @@ services:
     networks:
       - fcg-net
 
+  redis:
+    image: redis:7.2-alpine
+    container_name: fcg-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      <<: *redis-healthcheck
+    networks:
+      - fcg-net
+
+  mongodb:
+    image: mongo:7.0
+    container_name: fcg-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: fcg_app
+      MONGO_INITDB_ROOT_PASSWORD: fcg_app_dev
+      MONGO_INITDB_DATABASE: fcg_reviews
+    volumes:
+      - mongodb-data:/data/db
+    healthcheck:
+      <<: *mongodb-healthcheck
+    networks:
+      - fcg-net
+
   # ──────────────────────────────────────────────────────────────────
   #  Microsserviços
   # ──────────────────────────────────────────────────────────────────
@@ -82,6 +126,8 @@ services:
       postgres:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
@@ -107,6 +153,10 @@ services:
       postgres:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mongodb:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
@@ -175,3 +225,5 @@ networks:
 volumes:
   pgdata:
   rabbitmq-data:
+  redis-data:
+  mongodb-data:
