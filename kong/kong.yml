@@ -1,0 +1,102 @@
+_format_version: "3.0"
+_transform: true
+
+# ═══════════════════════════════════════════════════════════════════
+#  FCG Platform — Kong Gateway (DB-less / declarativo)
+#
+#  Rotas (prefixo /serviço → upstream sem prefixo):
+#    http://localhost:8000/users/...    → users-api:8080/...
+#    http://localhost:8000/catalog/...  → catalog-api:8080/...
+#    http://localhost:8000/payments/... → payments-api:8080/...
+#
+#  Portas:
+#    8000 → proxy HTTP
+#    8001 → Admin API (apenas interno)
+# ═══════════════════════════════════════════════════════════════════
+
+services:
+  # ── Users API ────────────────────────────────────────────────────
+  - name: users-api
+    url: http://users-api:8080
+    connect_timeout: 5000
+    read_timeout: 30000
+    write_timeout: 30000
+    routes:
+      - name: users-route
+        paths:
+          - /users
+        strip_path: true          # /users/api/auth/login → /api/auth/login
+        preserve_host: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 60
+          policy: local
+      - name: cors
+        config:
+          origins:
+            - "*"
+          methods:
+            - GET
+            - POST
+            - PUT
+            - DELETE
+            - OPTIONS
+          headers:
+            - Authorization
+            - Content-Type
+          exposed_headers:
+            - X-Auth-Token
+          credentials: true
+          max_age: 3600
+
+  # ── Catalog API ───────────────────────────────────────────────────
+  - name: catalog-api
+    url: http://catalog-api:8080
+    connect_timeout: 5000
+    read_timeout: 30000
+    write_timeout: 30000
+    routes:
+      - name: catalog-route
+        paths:
+          - /catalog
+        strip_path: true          # /catalog/api/jogos → /api/jogos
+        preserve_host: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 120
+          policy: local
+      - name: cors
+        config:
+          origins:
+            - "*"
+          methods:
+            - GET
+            - POST
+            - PUT
+            - DELETE
+            - OPTIONS
+          headers:
+            - Authorization
+            - Content-Type
+          credentials: true
+          max_age: 3600
+
+  # ── Payments API ──────────────────────────────────────────────────
+  - name: payments-api
+    url: http://payments-api:8080
+    connect_timeout: 5000
+    read_timeout: 30000
+    write_timeout: 30000
+    routes:
+      - name: payments-route
+        paths:
+          - /payments
+        strip_path: true
+        preserve_host: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 30
+          policy: local

@@ -2,7 +2,7 @@ version: "3.9"
 
 # ═══════════════════════════════════════════════════════════════════
 #  FCG Platform — Docker Compose unificado
-#  Serviços: PostgreSQL · RabbitMQ · Redis · MongoDB · UsersAPI · CatalogAPI · PaymentsAPI · NotificationsAPI · Prometheus · Grafana
+#  Serviços: PostgreSQL · RabbitMQ · Redis · MongoDB · UsersAPI · CatalogAPI · PaymentsAPI · NotificationsAPI · Prometheus · Grafana · Kong
 # ═══════════════════════════════════════════════════════════════════
 
 x-rabbitmq-healthcheck: &rabbitmq-healthcheck
@@ -218,6 +218,40 @@ services:
       - fcg-net
 
   # ──────────────────────────────────────────────────────────────────
+  #  API Gateway
+  # ──────────────────────────────────────────────────────────────────
+  kong:
+    image: kong:3.7-ubuntu
+    container_name: fcg-kong
+    ports:
+      - "8000:8000"   # Proxy HTTP  → http://localhost:8000/<serviço>/...
+      - "8001:8001"   # Admin API   → http://localhost:8001
+    environment:
+      KONG_DATABASE: "off"                                   # DB-less mode
+      KONG_DECLARATIVE_CONFIG: /etc/kong/kong.yml
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_LISTEN: "0.0.0.0:8001"
+      KONG_LOG_LEVEL: info
+    volumes:
+      - ./kong/kong.yml:/etc/kong/kong.yml:ro
+    depends_on:
+      users-api:
+        condition: service_healthy
+      catalog-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "kong", "health"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - fcg-net
+
+  # ──────────────────────────────────────────────────────────────────
   #  Observabilidade
   # ──────────────────────────────────────────────────────────────────
   prometheus:
@@ -266,3 +300,4 @@ volumes:
   mongodb-data:
   prometheus-data:
   grafana-data:
+  kong-data:

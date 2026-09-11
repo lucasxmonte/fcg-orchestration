@@ -23,6 +23,11 @@ scrape_configs:
       - targets: ["notifications-api:8080"]
     metrics_path: /metrics
 
+  - job_name: "fcg-kong"
+    static_configs:
+      - targets: ["kong:8001"]
+    metrics_path: /metrics
+
   - job_name: "prometheus"
     static_configs:
       - targets: ["localhost:9090"]
