@@ -10,14 +10,14 @@ Contém o `docker-compose.yml` unificado e todos os manifests Kubernetes consoli
                     ┌─────────────────────────────────────────────┐
                     │               FCG Platform                  │
                     │                                             │
-  Cliente HTTP ────►│  :8081 UsersAPI  ─── publica ──►           │
+  Cliente HTTP ────►│  :8081 UsersAPI  ─── publica ──►            │
                     │                         UserCreatedEvent    │
                     │  :8082 CatalogAPI ─── publica ──►           │
                     │         │               OrderPlacedEvent    │
                     │         │                                   │
                     │         │  ◄── consome ── PaymentProcessed  │
                     │         │                 Event             │
-                    │         │                     ▲            │
+                    │         │                     ▲             │
                     │     :8083 PaymentsAPI ─────────┘            │
                     │         (consome OrderPlaced, publica       │
                     │          PaymentProcessed)                  │
@@ -28,7 +28,7 @@ Contém o `docker-compose.yml` unificado e todos os manifests Kubernetes consoli
                     │                                             │
                     │  PostgreSQL (schemas: identidade · loja     │
                     │              biblioteca)                    │
-                    │  RabbitMQ  :5672 (AMQP) :15672 (Mgmt UI)   │
+                    │  RabbitMQ  :5672 (AMQP) :15672 (Mgmt UI)    │
                     └─────────────────────────────────────────────┘
 ```
 
@@ -87,19 +87,6 @@ kubectl get pods -n fcg
 # UsersAPI:   http://localhost:30081/swagger
 # CatalogAPI: http://localhost:30082/swagger
 ```
-
-### ⚠️ Antes de aplicar em produção
-
-1. **Altere o `Jwt__Secret`** em `k8s/03-secrets.yaml` (mínimo 32 caracteres aleatórios)
-2. **Altere as senhas** do PostgreSQL e RabbitMQ
-3. **Build e push** das imagens para um registry (ex: Docker Hub, ECR, GCR):
-   ```bash
-   docker build -t seu-registry/fcg-users-api:1.0.0 ../fcg-users-api
-   docker push seu-registry/fcg-users-api:1.0.0
-   # ... repita para os demais serviços
-   ```
-4. **Atualize** `image:` nos arquivos `04` a `07` com o caminho do registry
-5. Considere usar **Kubernetes Secrets** gerenciados (Vault, AWS Secrets Manager)
 
 ## Repositórios
 
