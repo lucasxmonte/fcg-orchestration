@@ -2,7 +2,7 @@ version: "3.9"
 
 # ═══════════════════════════════════════════════════════════════════
 #  FCG Platform — Docker Compose unificado
-#  Serviços: PostgreSQL · RabbitMQ · Redis · MongoDB · UsersAPI · CatalogAPI · PaymentsAPI · NotificationsAPI
+#  Serviços: PostgreSQL · RabbitMQ · Redis · MongoDB · UsersAPI · CatalogAPI · PaymentsAPI · NotificationsAPI · Prometheus · Grafana
 # ═══════════════════════════════════════════════════════════════════
 
 x-rabbitmq-healthcheck: &rabbitmq-healthcheck
@@ -217,6 +217,43 @@ services:
     networks:
       - fcg-net
 
+  # ──────────────────────────────────────────────────────────────────
+  #  Observabilidade
+  # ──────────────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    container_name: fcg-prometheus
+    ports:
+      - "9090:9090"   # UI: http://localhost:9090
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+      - "--web.enable-lifecycle"
+    networks:
+      - fcg-net
+
+  grafana:
+    image: grafana/grafana:10.4.3
+    container_name: fcg-grafana
+    ports:
+      - "3000:3000"   # UI: http://localhost:3000 (admin/admin)
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+    networks:
+      - fcg-net
+
 # ──────────────────────────────────────────────────────────────────
 networks:
   fcg-net:
@@ -227,3 +264,5 @@ volumes:
   rabbitmq-data:
   redis-data:
   mongodb-data:
+  prometheus-data:
+  grafana-data:
